@@ -28,7 +28,6 @@ export class AuthService {
       }
 
       const accessToken = this.jwtService.sign(rest);
-      console.log('accessToken', accessToken);
 
       await this.usersService.verifyUser(rest.id);
 

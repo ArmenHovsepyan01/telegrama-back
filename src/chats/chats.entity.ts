@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany } from 'typeorm';
 import { User } from '../users/user.entity';
+import { ChatMessage } from './chat-messages.entity';
 
 @Entity('chats')
 export class Chat {
@@ -10,8 +11,11 @@ export class Chat {
   isPrivate: boolean;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
+  created_at: Date;
 
   @ManyToMany(() => User, (user) => user.chats)
   users: User[];
+
+  @OneToMany(() => ChatMessage, (chatMessage) => chatMessage.chat)
+  messages: ChatMessage[];
 }

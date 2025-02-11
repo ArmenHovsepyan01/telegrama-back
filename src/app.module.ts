@@ -38,8 +38,8 @@ import { ChatsModule } from './chats/chats.module';
     UsersModule,
     AuthModule,
     MailModule,
-    SocketModule,
-    ChatsModule
+    ChatsModule,
+    SocketModule
   ],
   controllers: [AppController, AuthController],
   providers: [

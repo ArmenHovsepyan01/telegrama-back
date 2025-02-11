@@ -1,5 +1,6 @@
-import { Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Chat } from '../chats/chats.entity';
+import { ChatMessage } from '../chats/chat-messages.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -31,4 +32,7 @@ export class User {
     inverseJoinColumn: { name: 'chat_id', referencedColumnName: 'id' }
   })
   chats: Chat[];
+
+  @OneToMany(() => ChatMessage, (chatMessage) => chatMessage.user)
+  messages: ChatMessage[];
 }

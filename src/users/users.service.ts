@@ -7,26 +7,27 @@ import {
   UnauthorizedException
 } from '@nestjs/common';
 import { User } from './user.entity';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateUserDto } from './dto/create.dto';
 import { hash } from 'bcrypt';
 import { MailService } from '../mail/mail.service';
-import { SocketService } from '../socket/socket.service';
+import { ChatsService } from '../chats/chats.service';
+import { UserChat } from './user_chats.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private usersRepository: Repository<User>,
+    @InjectRepository(UserChat) private userChatsRepository: Repository<UserChat>,
     private mailService: MailService,
-    private socketService: SocketService
+    private chatsService: ChatsService
   ) {}
-  async findAll(): Promise<User[]> {
-    const users = await this.usersRepository.find();
-    if (users.length) {
-      throw new BadRequestException(`User by is already exists, please use another email address.`);
-    }
-    return users;
+  async findAll(searchTerm: string) {
+    return await this.usersRepository.find({
+      select: ['email', 'name', 'lastName', 'nickName'],
+      where: [{ email: Like(`%${searchTerm}%`) }, { nickName: Like(`%${searchTerm}%`) }]
+    });
   }
 
   async create(user: CreateUserDto): Promise<User> {
@@ -57,12 +58,7 @@ export class UsersService {
       where: {
         id
       },
-      select: {
-        name: true,
-        lastName: true,
-        email: true,
-        nickName: true
-      }
+      select: ['id', 'email', 'name', 'lastName', 'nickName']
     });
 
     if (!user) {
@@ -126,6 +122,28 @@ export class UsersService {
           email
         }
       });
+    } catch (e) {
+      throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async getUserChats(userId: number) {
+    try {
+      return await this.usersRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.chats', 'chat')
+        .leftJoinAndSelect('chat.users', 'chatUser', 'chatUser.id != :userId')
+        .where('user.id = :userId', { userId })
+        .select([
+          'user.id', // Include user ID to identify the user
+          'chat.id', // Include chat ID to identify the chat
+          'chatUser.id', // Select required attributes from related users
+          'chatUser.name', // Select required attributes from related users
+          'chatUser.lastName',
+          'chatUser.email'
+        ])
+        .setParameters({ userId })
+        .getMany();
     } catch (e) {
       throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }

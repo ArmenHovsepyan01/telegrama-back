@@ -8,14 +8,12 @@ import {
   UnauthorizedException,
   UsePipes,
   Request,
-  Response,
-  UseGuards
+  Response
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { APIResponse } from '../common/interceptors/transformResponse.interceptor';
 import { ZodValidationPipe } from '../common/pipes/validation.pipe';
 import { SignInUserDto, signInUserSchema } from './dto/signIn.dto';
-import { AuthGuard } from './auth.guard';
 import { Public } from '../common/decorators/decorators';
 
 @Controller('auth')
@@ -47,7 +45,7 @@ export class AuthController {
   }
 
   @Get('profile')
-  getProfile(@Request() req) {
+  getProfile(@Request() req: any) {
     return req.user;
   }
 }

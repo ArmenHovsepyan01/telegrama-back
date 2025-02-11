@@ -17,7 +17,11 @@ async function startServer() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: 'http://localhost:3000'
+    origin: [
+      'http://localhost:3000',
+      'http://192.168.1.53:3000',
+      'https://8a18-217-113-20-151.ngrok-free.app'
+    ]
   });
 
   patchNestJsSwagger();
@@ -29,7 +33,7 @@ async function startServer() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 
-  await app.listen(process.env.PORT || 5000, () =>
+  await app.listen(process.env.PORT || 5000, '0.0.0.0', () =>
     console.log('Server is listening on http://localhost:5000/api')
   );
 }

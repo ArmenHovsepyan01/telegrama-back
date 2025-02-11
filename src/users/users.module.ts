@@ -4,10 +4,11 @@ import { UsersController } from './users.controller';
 import { User } from './user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MailModule } from '../mail/mail.module';
-import { SocketModule } from '../socket/socket.module';
+import { ChatsModule } from '../chats/chats.module';
+import { UserChat } from './user_chats.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), MailModule, SocketModule],
+  imports: [TypeOrmModule.forFeature([User, UserChat]), MailModule, ChatsModule],
   providers: [UsersService],
   controllers: [UsersController],
   exports: [UsersService]

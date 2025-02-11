@@ -19,7 +19,7 @@ const config = {
   migrations: [`${path}/migrations/**/*.{ts,js}`],
   autoLoadEntities: true,
   synchronize: false,
-  logging: true,
+  logging: false,
   migrationsRun: false,
   migrationsTransactionMode: 'each'
 };

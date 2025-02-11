@@ -19,10 +19,10 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "ts-node ./node_modules/typeorm/cli",
-    "entity:create": "npm run typeorm entity:create -n ./src/$moduleName/$name.entity",
+    "entity:create": "npm run typeorm entity:create -n ./src/chats/chat-messages",
     "migration:run": "npm run typeorm migration:run -- -d ./src/config/typeorm.ts",
     "migration:generate": "npm run typeorm -- -d ./src/config/typeorm.ts migration:generate ./src/migrations/1732969714249-users.ts",
-    "migration:create": "npm run typeorm -- migration:create ./src/migrations/user-chats",
+    "migration:create": "npm run typeorm -- migration:create ./src/migrations/chat-messages",
     "migration:revert": "npm run typeorm -- -d ./src/config/typeorm.ts migration:revert"
   },
   "dependencies": {
@@ -31,7 +31,7 @@
     "@nestjs/config": "^3.3.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/jwt": "^10.2.0",
-    "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/platform-express": "^10.4.15",
     "@nestjs/platform-socket.io": "^10.4.13",
     "@nestjs/swagger": "^8.1.0",
     "@nestjs/typeorm": "^10.0.2",

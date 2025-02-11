@@ -7,7 +7,10 @@ import {
   HttpException,
   Param,
   Post,
-  UsePipes
+  Query,
+  UsePipes,
+  Request,
+  HttpStatus
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto, createUserSchema } from './dto/create.dto';
@@ -27,10 +30,25 @@ export class UsersController {
     private mailService: MailService
   ) {}
 
-  @Get()
-  async getUsers() {
+  @Get('/chats')
+  async getChats(@Request() req: any) {
     try {
-      const users = await this.usersService.findAll();
+      const userChats = await this.usersService.getUserChats(req.user.id);
+      return new APIResponse('Success', userChats);
+    } catch (e) {
+      console.error('Caught an error in getChats', e.response);
+      throw new HttpException(
+        e.message,
+        e?.response?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Get()
+  @HttpCode(200)
+  async searchUsers(@Query() query: { searchTerm: string }) {
+    try {
+      const users = await this.usersService.findAll(query.searchTerm);
       return new APIResponse('Success', users);
     } catch (e) {
       console.log('Caught an error in getUsers', e.message);
@@ -45,7 +63,10 @@ export class UsersController {
       return new APIResponse('Success', user);
     } catch (e) {
       console.log('Caught an error in getUsers', e.message);
-      throw new HttpException(e.response.message, e.response.statusCode);
+      throw new HttpException(
+        e.message,
+        e?.response?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 

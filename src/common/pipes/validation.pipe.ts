@@ -1,11 +1,11 @@
-import { PipeTransform, ArgumentMetadata, BadRequestException } from '@nestjs/common';
+import { PipeTransform, BadRequestException } from '@nestjs/common';
 import { ZodError, ZodSchema } from 'zod';
 
 export class ZodValidationPipe implements PipeTransform {
   constructor(private schema: ZodSchema) {}
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  transform(value: unknown, metadata: ArgumentMetadata) {
+  transform(value: unknown) {
     try {
       return this.schema.parse(value);
     } catch (error) {

@@ -23,11 +23,14 @@ export class UsersService {
     private mailService: MailService,
     private chatsService: ChatsService
   ) {}
-  async findAll(searchTerm: string) {
-    return await this.usersRepository.find({
-      select: ['email', 'name', 'lastName', 'nickName'],
+  async findAll(searchTerm: string, userId: number) {
+    const users = await this.usersRepository.find({
+      select: ['id', 'email', 'name', 'lastName', 'nickName'],
       where: [{ email: Like(`%${searchTerm}%`) }, { nickName: Like(`%${searchTerm}%`) }]
     });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    return users.filter((u) => u.id !== userId).map(({ id, ...rest }) => rest);
   }
 
   async create(user: CreateUserDto): Promise<User> {
@@ -135,10 +138,10 @@ export class UsersService {
         .leftJoinAndSelect('chat.users', 'chatUser', 'chatUser.id != :userId')
         .where('user.id = :userId', { userId })
         .select([
-          'user.id', // Include user ID to identify the user
-          'chat.id', // Include chat ID to identify the chat
-          'chatUser.id', // Select required attributes from related users
-          'chatUser.name', // Select required attributes from related users
+          'user.id',
+          'chat.id',
+          'chatUser.id',
+          'chatUser.name',
           'chatUser.lastName',
           'chatUser.email'
         ])

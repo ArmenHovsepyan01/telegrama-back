@@ -46,9 +46,9 @@ export class UsersController {
 
   @Get()
   @HttpCode(200)
-  async searchUsers(@Query() query: { searchTerm: string }) {
+  async searchUsers(@Query() query: { searchTerm: string }, @Request() req: any) {
     try {
-      const users = await this.usersService.findAll(query.searchTerm);
+      const users = await this.usersService.findAll(query.searchTerm, req.user.id);
       return new APIResponse('Success', users);
     } catch (e) {
       console.log('Caught an error in getUsers', e.message);

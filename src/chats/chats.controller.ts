@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -6,14 +7,17 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Request,
   UsePipes
 } from '@nestjs/common';
 import { ChatsService } from './chats.service';
 import { APIResponse } from '../common/interceptors/transformResponse.interceptor';
 import { ZodValidationPipe } from '../common/pipes/validation.pipe';
-import { createChatMessage, CreateMessageDto } from './dto/create-message.dto';
+import { createChatMessage } from './dto/create-message.dto';
+import { createChat, CreateChatDto } from './dto/create-chat.dto';
 import { SocketService } from '../socket/socket.service';
+import { CreateUserDto } from '../users/dto/create.dto';
 
 @Controller('chats')
 export class ChatsController {
@@ -66,6 +70,20 @@ export class ChatsController {
         error.message,
         error?.response?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
       );
+    }
+  }
+
+  @Post('/')
+  @UsePipes(new ZodValidationPipe(createChat))
+  @HttpCode(200)
+  async createChat(@Body() body: CreateChatDto, @Request() req: any) {
+    try {
+      const { userMail } = body;
+      const chat = await this.chatsService.createChat(userMail, req.user);
+
+      return new APIResponse('Success', chat);
+    } catch (error) {
+      throw new HttpException(error.message, error?.status || HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

@@ -31,7 +31,7 @@ export class MailService {
       await this.mailService.sendMail({
         from: `MessageApp <${process.env.MAIL_USERNAME}>`,
         to: email,
-        subject: `How to Send Emails with Nodemailer`,
+        subject: `Registration Confirmation`,
         html
       });
 

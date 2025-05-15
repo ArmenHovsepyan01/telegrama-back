@@ -23,6 +23,9 @@ export class ChatMessage {
   @Column({ default: '', type: 'varchar' })
   message: string;
 
+  @Column({ default: 'user', type: 'varchar' })
+  role: string;
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 

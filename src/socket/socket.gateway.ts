@@ -5,33 +5,45 @@ import {
   WebSocketGateway,
   WebSocketServer
 } from '@nestjs/websockets';
-import { Socket } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { Logger, OnModuleInit, UseGuards } from '@nestjs/common';
 import { SocketService } from './socket.service';
 import { WsAuthGuard } from './socket.guard';
 import { ChatsService } from '../chats/chats.service';
+import { CallsService } from '../calls/calls.service';
+import { CallStatus } from '../calls/call.entity';
+import { UsersModule } from '../users/users.module';
+import { UsersService } from '../users/users.service';
 
 const onlineUsers = new Map<number, string>();
 
 @WebSocketGateway({
   transports: ['websocket', 'polling'],
-  origin: ['http://localhost:3000', 'http://192.168.1.53:3000'],
+  origin: [
+    'https://localhost:3000/',
+    'http://localhost:3000',
+    'http://192.168.1.53:3000',
+    'https://192.168.123.58:3000'
+  ],
   credentials: true
 })
 @UseGuards(WsAuthGuard)
 export class SocketGateway implements OnModuleInit {
   @WebSocketServer()
-  private server: Socket;
+  private server: Server;
 
   private readonly logger = new Logger(SocketGateway.name);
 
   constructor(
     private socketService: SocketService,
-    private chatsService: ChatsService
+    private chatsService: ChatsService,
+    private usersService: UsersService,
+    private callService: CallsService
   ) {}
 
   onModuleInit(): void {
-    this.server.on('connection', (socket) => {
+    this.server.on('connection', (socket: Socket) => {
+      // @ts-ignore
       this.socketService.setServer(socket);
       this.logger.log(`Socket Initialized! ID: ${socket.id}`);
 
@@ -43,7 +55,6 @@ export class SocketGateway implements OnModuleInit {
         if (userId) {
           onlineUsers.delete(userId);
           console.log(`User ${userId} is offline.`);
-
           this.server.emit('update-online-users', Array.from(onlineUsers.keys()));
           this.server.emit('callEnded');
         }
@@ -53,11 +64,7 @@ export class SocketGateway implements OnModuleInit {
 
   @SubscribeMessage('joinChat')
   onJoinChat(
-    @MessageBody()
-    body: {
-      chatId: string;
-      userId: number;
-    },
+    @MessageBody() body: { chatId: string; userId: number },
     @ConnectedSocket() socket: Socket
   ) {
     const auth_token = socket.data;
@@ -70,15 +77,28 @@ export class SocketGateway implements OnModuleInit {
     socket.join(chatId);
   }
 
+  @SubscribeMessage('joinAIChat')
+  onJoinAIChat(
+    @MessageBody() body: { callId: string; userId: number },
+    @ConnectedSocket() socket: Socket
+  ) {
+    const auth_token = socket.data;
+    console.log('auth_token', auth_token);
+    const { callId, userId } = body;
+
+    socket.join(callId);
+
+    console.log(`User ${userId} joined call room: ${callId}`);
+    this.logger.log(`Socket ${socket.id} joined call room: ${callId}`);
+  }
+
   @SubscribeMessage('typing')
   async onTyping(
     @MessageBody() body: { chatId: string; message: string; userId: number },
     @ConnectedSocket() socket: Socket
   ) {
     const { chatId, ...rest } = body;
-    socket.broadcast.to(chatId).emit('typing', {
-      ...rest
-    });
+    socket.broadcast.to(chatId).emit('typing', { ...rest });
   }
 
   @SubscribeMessage('stopTyping')
@@ -87,9 +107,7 @@ export class SocketGateway implements OnModuleInit {
     @ConnectedSocket() socket: Socket
   ) {
     const { chatId, ...rest } = body;
-    socket.broadcast.to(chatId).emit('stopTyping', {
-      ...rest
-    });
+    socket.broadcast.to(chatId).emit('stopTyping', { ...rest });
   }
 
   @SubscribeMessage('user-online')
@@ -97,42 +115,52 @@ export class SocketGateway implements OnModuleInit {
     const { userId } = body;
     onlineUsers.set(userId, socket.id);
     console.log(`User ${userId} is online.`);
-
-    // Notify all clients about the updated online users
     this.server.emit('update-online-users', Array.from(onlineUsers.keys()));
   }
 
   @SubscribeMessage('sendMessage')
   async onSendMessage(
     @MessageBody()
-    body: {
-      message: {
-        message: string;
-        id: string;
-      };
-      chatId: string;
-    },
+    body: { message: { message: string; id: string }; chatId: string },
     @ConnectedSocket() socket: Socket
   ) {
     const { chatId } = body;
-
     const message = await this.socketService.createMessage(
       { chatId, message: body.message.message },
       socket.data.user.id
     );
-    console.log(`User ${socket.data.user.id} is sending message.`, message);
 
     socket.to(chatId).emit('receiveMessage', message);
-    socket.emit('messageAck', {
-      message,
-      id: body.message.id
+    socket.emit('messageAck', { message, id: body.message.id });
+  }
+
+  @SubscribeMessage('sendAIMessage')
+  async onSendAIMessage(
+    @MessageBody()
+    body: { message: { message: string; id: string }; chatId: string; callId: string },
+    @ConnectedSocket() socket: Socket
+  ) {
+    const { chatId, callId } = body;
+
+    await this.socketService.createMessage(
+      {
+        chatId,
+        message: body.message.message
+      },
+      socket.data.user.id
+    );
+
+    await this.socketService.createAIMessage({
+      chatId,
+      callId,
+      message: body.message.message,
+      userId: socket.data.user.id
     });
   }
 
   @SubscribeMessage('callUser')
   handleCallUser(
-    @MessageBody()
-    data: { userToCall: string; signalData: any; from: string; name: string },
+    @MessageBody() data: { userToCall: string; signalData: any; from: string; name: string },
     @ConnectedSocket() client: Socket
   ) {
     this.logger.log(`Call initiated by ${data.from} to ${data.userToCall}`);
@@ -152,101 +180,128 @@ export class SocketGateway implements OnModuleInit {
     client.to(data.to).emit('callAccepted', data.signal);
   }
 
-  // @SubscribeMessage('start-call')
-  // handleStartCall(@ConnectedSocket() client: Socket, @MessageBody() payload: { targetId: string }) {
-  //   client.broadcast.to(payload.targetId).emit('incoming-call', { callerId: client.id });
-  // }
-  //
-  // @SubscribeMessage('video-offer')
-  // handleVideoOffer(@ConnectedSocket() client: Socket, @MessageBody() payload: any) {
-  //   console.log('Video offer:', payload);
-  //   client.broadcast.to(payload.chatId).emit('video-offer', payload);
-  // }
-  //
-  // @SubscribeMessage('video-answer')
-  // handleVideoAnswer(@ConnectedSocket() client: Socket, @MessageBody() payload: any) {
-  //   console.log('Video answer:', payload);
-  //   client.broadcast.to(payload.chatId).emit('video-answer', payload);
-  // }
-  //
-  // @SubscribeMessage('ice-candidate')
-  // handleIceCandidate(@ConnectedSocket() client: Socket, @MessageBody() payload: any) {
-  //   client.broadcast.to(payload.target).emit('ice-candidate', payload);
-  // }
-  //
-  // @SubscribeMessage('call_join_room')
-  // async joinRoom(@MessageBody() roomName: string, @ConnectedSocket() socket: Socket) {
-  //   const room = this.server.in(roomName);
-  //
-  //   const roomSockets = await room.fetchSockets();
-  //   const numberOfPeopleInRoom = roomSockets.length;
-  //
-  //   if (numberOfPeopleInRoom > 2) {
-  //     room.emit('too_many_people');
-  //     return;
-  //   }
-  //
-  //   if (numberOfPeopleInRoom === 2) {
-  //     room.emit('another_person_ready');
-  //   }
-  //
-  //   socket.join(roomName);
-  // }
-  //
-  // @SubscribeMessage('send_connection_offer')
-  // async sendConnectionOffer(
-  //   @MessageBody()
-  //   {
-  //     offer,
-  //     roomName
-  //   }: {
-  //     offer: RTCSessionDescriptionInit;
-  //     roomName: string;
-  //   },
-  //   @ConnectedSocket() socket: Socket
-  // ) {
-  //   console.log('roomName', roomName);
-  //   console.log('offer', offer);
-  //   console.log('socketid', socket.id);
-  //   this.server.in(roomName).except(socket.id).emit('send_connection_offer', {
-  //     offer,
-  //     roomName
-  //   });
-  // }
-  //
-  // @SubscribeMessage('answer')
-  // async answer(
-  //   @MessageBody()
-  //   {
-  //     answer,
-  //     roomName
-  //   }: {
-  //     answer: RTCSessionDescriptionInit;
-  //     roomName: string;
-  //   },
-  //   @ConnectedSocket() socket: Socket
-  // ) {
-  //   this.server.in(roomName).except(socket.id).emit('answer', {
-  //     answer,
-  //     roomName
-  //   });
-  // }
-  //
-  // @SubscribeMessage('send_candidate')
-  // async sendCandidate(
-  //   @MessageBody()
-  //   {
-  //     candidate,
-  //     roomName
-  //   }: {
-  //     candidate: unknown;
-  //     roomName: string;
-  //   },
-  //   @ConnectedSocket() socket: Socket
-  // ) {
-  //   this.server.in(roomName).except(socket.id).emit('send_candidate', {
-  //     candidate,
-  //     roomName
-  //   });
-  // }
+  @SubscribeMessage('call-request')
+  async handleCallRequest(
+    @MessageBody() data: { chatId: string; callerId: number },
+    @ConnectedSocket() client: Socket
+  ) {
+    const room = data.chatId;
+    client.join(room);
+    this.logger.log(`Client ${client.id} requested a call in room ${room}`);
+
+    const roomClients = this.server.sockets.adapter.rooms.get(room);
+    if (roomClients) {
+      const otherClients = Array.from(roomClients).filter((id) => id !== client.id);
+      if (otherClients.length > 0) {
+        const targetId = otherClients[0];
+        const call = await this.callService.createCall({
+          chatId: data.chatId,
+          callerId: data.callerId
+        });
+
+        const callData = { from: client.id, chatId: room, callId: call.id };
+
+        const user = await this.usersService.findOne(data.callerId);
+
+        if (user) {
+          // @ts-expect-error
+          callData.callerName = user.name;
+        }
+
+        this.server.to(targetId).emit('incoming-call', callData);
+        this.server.to(client.id).emit('requested-call-id', { callId: call.id });
+      }
+    }
+  }
+
+  @SubscribeMessage('call-accepted')
+  async handleCallAccepted(
+    @MessageBody() data: { chatId: string; callId: string },
+    @ConnectedSocket() client: Socket
+  ) {
+    const room = data.chatId;
+    client.join(room);
+    this.logger.log(`Client ${client.id} accepted the call in room ${room}`);
+
+    const roomClients = this.server.sockets.adapter.rooms.get(room);
+    if (roomClients) {
+      const otherClients = Array.from(roomClients).filter((id) => id !== client.id);
+      if (otherClients.length > 0) {
+        const callerId = otherClients[0];
+        this.server.to(callerId).emit('call-accepted', { from: client.id, chatId: room });
+        await this.callService.updateCallStatus(data.callId, CallStatus.STARTED);
+      }
+    }
+  }
+
+  @SubscribeMessage('call-declined')
+  async handleCallDeclined(
+    @MessageBody() data: { chatId: string; callId: string },
+    @ConnectedSocket() client: Socket
+  ) {
+    const room = data.chatId;
+    this.logger.log(`Client ${client.id} declined the call in room ${room}`);
+    // Use the server instance to access rooms
+    const roomClients = this.server.sockets.adapter.rooms.get(room);
+    if (roomClients) {
+      const otherClients = Array.from(roomClients).filter((id) => id !== client.id);
+      if (otherClients.length > 0) {
+        const callerId = otherClients[0];
+        this.server.to(callerId).emit('call-declined', { from: client.id, chatId: room });
+        await this.callService.updateCallStatus(data.callId, CallStatus.DECLINED);
+      }
+    }
+  }
+
+  @SubscribeMessage('offer')
+  handleOnOffer(
+    @MessageBody() data: { target: string; caller: string; sdp: any },
+    @ConnectedSocket() client: Socket
+  ) {
+    this.logger.log(`Offer from ${client.id} to ${data.target}`);
+    client.to(data.target).emit('offer', data);
+  }
+
+  @SubscribeMessage('answer')
+  handleOnAnswer(
+    @MessageBody() data: { target: string; caller: string; sdp: any },
+    @ConnectedSocket() client: Socket
+  ) {
+    this.logger.log(`Answer from ${client.id} to ${data.target}`);
+    client.to(data.target).emit('answer', data);
+  }
+
+  @SubscribeMessage('ice-candidate')
+  handleOnICECandidate(
+    @MessageBody() data: { target: string; candidate: any },
+    @ConnectedSocket() client: Socket
+  ) {
+    this.logger.log(`ICE candidate from ${client.id} to ${data}`, data);
+    client.to(data.target).emit('ice-candidate', data.candidate);
+  }
+
+  @SubscribeMessage('call-ended')
+  async handleOnCallEnded(
+    @MessageBody() data: { chatId: string; from: string; callId: string },
+    @ConnectedSocket() client: Socket
+  ) {
+    this.logger.log(`${data.from} Ended call`);
+    await this.callService.endCall(data.callId);
+    client.broadcast.to(data.chatId).emit('call-ended', data);
+  }
+
+  @SubscribeMessage('call-transcript')
+  async handleOnTranscript(
+    @MessageBody() data: { callId: string; text: string; userId: number; target: string },
+    @ConnectedSocket() client: Socket
+  ) {
+    try {
+      client.to(data.target).emit('call-transcription-recieved', {
+        text: data.text
+      });
+      await this.callService.createCallTranscription(data.callId, data.text, data.userId);
+    } catch (error) {
+      this.logger.error('Caught error in handleOnTranscript', error);
+    }
+  }
 }

@@ -30,6 +30,12 @@ export class ChatMessages1734168090448 implements MigrationInterface {
             default: "''"
           },
           {
+            name: 'role',
+            type: 'varchar',
+            isNullable: true,
+            default: 'user'
+          },
+          {
             name: 'created_at',
             type: 'timestamp',
             default: 'now()'

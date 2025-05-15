@@ -11,8 +11,6 @@ export class WsAuthGuard implements CanActivate {
 
     const token = client.handshake.auth?.token;
 
-    console.log('WsGurad', token);
-
     if (!token) {
       client.disconnect();
       throw new UnauthorizedException('Token is missing');

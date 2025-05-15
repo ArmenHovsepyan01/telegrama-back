@@ -7,8 +7,9 @@ import {
   HttpStatus,
   Param,
   Post,
-  Query,
   Request,
+  UploadedFile,
+  UseInterceptors,
   UsePipes
 } from '@nestjs/common';
 import { ChatsService } from './chats.service';
@@ -17,7 +18,10 @@ import { ZodValidationPipe } from '../common/pipes/validation.pipe';
 import { createChatMessage } from './dto/create-message.dto';
 import { createChat, CreateChatDto } from './dto/create-chat.dto';
 import { SocketService } from '../socket/socket.service';
-import { CreateUserDto } from '../users/dto/create.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as path from 'node:path';
+import * as fs from 'node:fs/promises';
+import { CreateAIChatDto, createAIChat } from './dto/create-ai-chat.dto';
 
 @Controller('chats')
 export class ChatsController {
@@ -85,5 +89,41 @@ export class ChatsController {
     } catch (error) {
       throw new HttpException(error.message, error?.status || HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  @Post('/assistant/thread')
+  @UsePipes(new ZodValidationPipe(createAIChat))
+  @HttpCode(200)
+  async createAIChat(@Body() body: CreateAIChatDto, @Request() req: any) {
+    try {
+      const { callId } = body;
+      const assistantChat = await this.chatsService.createAIChat(callId, req.user);
+
+      return new APIResponse('Success', assistantChat);
+    } catch (error) {
+      throw new HttpException(error.message, error?.status || HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('transcribe')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    try {
+      console.log(file);
+      await fs.writeFile(`${path.resolve()}/transcriptions/${file.originalname}`, file.buffer);
+      return new APIResponse('Success');
+    } catch (error) {
+      throw new HttpException(error.message, error?.status || HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('transcribe-base64')
+  async fromBase64(@Body('audio') dataURL: string) {
+    const [, b64] = dataURL.split(',');
+    const buffer = Buffer.from(b64, 'base64');
+    const filename = `sm-${Date.now()}.webm`;
+
+    await fs.writeFile(`${path.resolve()}/transcriptions/${filename}`, buffer);
+    return new APIResponse('Success');
   }
 }

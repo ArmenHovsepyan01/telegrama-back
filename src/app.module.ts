@@ -16,6 +16,9 @@ import jwtConstant from './constants/jwt.constant';
 import { AuthGuard } from './auth/auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { ChatsModule } from './chats/chats.module';
+import { TranscriptionsModule } from './transcriptions/transcriptions.module';
+import { CallsModule } from './calls/calls.module';
+import { OpenAIModule } from './openai/openai.module';
 
 @Module({
   imports: [
@@ -39,7 +42,10 @@ import { ChatsModule } from './chats/chats.module';
     AuthModule,
     MailModule,
     ChatsModule,
-    SocketModule
+    TranscriptionsModule,
+    CallsModule,
+    SocketModule,
+    OpenAIModule
   ],
   controllers: [AppController, AuthController],
   providers: [

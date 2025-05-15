@@ -13,6 +13,8 @@ declare global {
       MAIL_USERNAME?: string;
       JWT_SECRET?: string;
       APP_DOMAIN?: string;
+      OPENAI_API_KEY?: string;
+      ASSISTANT_ID?: string;
     }
   }
 }

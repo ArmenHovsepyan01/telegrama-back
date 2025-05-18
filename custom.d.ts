@@ -14,6 +14,7 @@ declare global {
       JWT_SECRET?: string;
       APP_DOMAIN?: string;
       OPENAI_API_KEY?: string;
+      OPENAI_API_KEY_2?: string;
       ASSISTANT_ID?: string;
     }
   }

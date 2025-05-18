@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { OpenAI } from 'openai';
 
+import { config } from 'dotenv';
+config();
+
 @Injectable()
 export class OpenAIService {
   public openai: OpenAI;
 
   constructor() {
     this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY_2,
       defaultHeaders: { 'OpenAI-Beta': 'assistants=v2' }
     });
   }

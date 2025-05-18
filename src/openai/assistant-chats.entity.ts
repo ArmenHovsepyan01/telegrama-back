@@ -10,6 +10,9 @@ export class AssistantChat {
   @PrimaryColumn({ name: 'chat_id', type: 'uuid' })
   chatId: string;
 
+  @PrimaryColumn({ name: 'user_id', type: 'int' })
+  userId: number;
+
   @Column({ name: 'thread_id', type: 'varchar', nullable: true, default: null })
   threadId?: string;
 

@@ -7,7 +7,7 @@ import {
   UnauthorizedException
 } from '@nestjs/common';
 import { User } from './user.entity';
-import { Like, Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateUserDto } from './dto/create.dto';
 import { hash } from 'bcrypt';
@@ -26,7 +26,12 @@ export class UsersService {
   async findAll(searchTerm: string, userId: number) {
     const users = await this.usersRepository.find({
       select: ['id', 'email', 'name', 'lastName', 'nickName'],
-      where: [{ email: Like(`%${searchTerm}%`) }, { nickName: Like(`%${searchTerm}%`) }]
+      where: [
+        { email: ILike(`%${searchTerm.trim()}%`) },
+        { nickName: ILike(`%${searchTerm.trim()}%`) },
+        { name: ILike(`%${searchTerm.trim()}%`) },
+        { lastName: ILike(`%${searchTerm.trim()}%`) }
+      ]
     });
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

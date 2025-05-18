@@ -107,7 +107,7 @@ export class CallsService {
     const durationMins = endTime.diff(startTime, 'minutes');
     const durationSecs = endTime.diff(startTime, 'seconds');
     const formattedDate = startTime.format('ddd, MM/DD/YYYY h:mmA');
-    const formattedDuration = `${durationMins} mins ${durationSecs} secs`;
+    const formattedDuration = `${durationMins} mins ${durationSecs % 60} secs`;
 
     const doc = new PDFDocument({ margin: 50 });
     const publicFolder = path.join(process.cwd(), 'public', 'pdfs');
@@ -123,6 +123,7 @@ export class CallsService {
 
     doc
       .moveDown(0.5)
+      .font('public/assets/fonts/DejaVuSans.ttf')
       .fontSize(12)
       .text(`${formattedDate}    •    ${formattedDuration}`, { align: 'left' });
 

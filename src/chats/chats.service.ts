@@ -167,7 +167,8 @@ export class ChatsService {
 
       const existingAssistantChat = await this.assistantChatsRepository.findOne({
         where: {
-          callId: callId
+          callId: callId,
+          userId: actualUser.id
         }
       });
 
@@ -220,7 +221,8 @@ export class ChatsService {
         this.assistantChatsRepository.create({
           chatId: chat.id,
           callId: call.id,
-          threadId
+          threadId,
+          userId: actualUser.id
         })
       );
     } catch (e) {

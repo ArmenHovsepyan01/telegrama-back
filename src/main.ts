@@ -19,7 +19,7 @@ async function startServer() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://192.168.123.58:3000']
+    origin: ['http://localhost:3000', 'https://192.168.123.33:3000', 'https://localhost:3000']
   });
 
   patchNestJsSwagger();

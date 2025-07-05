@@ -22,6 +22,7 @@ import { OpenAIModule } from './openai/openai.module';
 
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -52,7 +53,8 @@ import { join } from 'path';
     TranscriptionsModule,
     CallsModule,
     SocketModule,
-    OpenAIModule
+    OpenAIModule,
+    NotificationsModule
   ],
   controllers: [AppController, AuthController],
   providers: [

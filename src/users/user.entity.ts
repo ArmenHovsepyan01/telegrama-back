@@ -25,6 +25,9 @@ export class User {
   @Column({ default: false })
   isVerified: boolean;
 
+  @Column({ name: 'fcm_token', nullable: true })
+  fcmToken: string;
+
   @ManyToMany(() => Chat, (chat) => chat.users)
   @JoinTable({
     name: 'user_chats',

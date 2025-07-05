@@ -18,6 +18,7 @@ import { ZodValidationPipe } from '../common/pipes/validation.pipe';
 import { MailService } from '../mail/mail.service';
 import { APIResponse } from '../common/interceptors/transformResponse.interceptor';
 import { Public } from '../common/decorators/decorators';
+import { saveFCMToken, SaveFCMTokenDto } from './dto/saveFCMToken.dto';
 
 interface UserParams {
   id: number;
@@ -77,6 +78,22 @@ export class UsersController {
   async createUser(@Body() createUserDto: CreateUserDto) {
     try {
       await this.usersService.create(createUserDto);
+
+      return new APIResponse(
+        'You have successfully created an account, please check your email and verify your account.'
+      );
+    } catch (e) {
+      console.log('Caught an error in createUser', e.message);
+      throw new HttpException(e.message, e?.response?.statusCode || 400);
+    }
+  }
+
+  @Post('fcm-token')
+  @UsePipes(new ZodValidationPipe(saveFCMToken))
+  @HttpCode(200)
+  async saveUserFCMToken(@Request() req: any, @Body() saveFCMTokenDto: SaveFCMTokenDto) {
+    try {
+      await this.usersService.saveFCMToken(req.user.id, saveFCMTokenDto);
 
       return new APIResponse(
         'You have successfully created an account, please check your email and verify your account.'

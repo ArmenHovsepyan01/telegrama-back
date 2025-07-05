@@ -12,8 +12,8 @@ import { WsAuthGuard } from './socket.guard';
 import { ChatsService } from '../chats/chats.service';
 import { CallsService } from '../calls/calls.service';
 import { CallStatus } from '../calls/call.entity';
-import { UsersModule } from '../users/users.module';
 import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const onlineUsers = new Map<number, string>();
 
@@ -23,7 +23,8 @@ const onlineUsers = new Map<number, string>();
     'https://localhost:3000/',
     'http://localhost:3000',
     'http://192.168.1.53:3000',
-    'https://192.168.123.58:3000'
+    'https://192.168.123.33:3000',
+    'https://192.168.123.33:3000/'
   ],
   credentials: true
 })
@@ -38,7 +39,8 @@ export class SocketGateway implements OnModuleInit {
     private socketService: SocketService,
     private chatsService: ChatsService,
     private usersService: UsersService,
-    private callService: CallsService
+    private callService: CallsService,
+    private notificationService: NotificationsService
   ) {}
 
   onModuleInit(): void {
@@ -129,6 +131,18 @@ export class SocketGateway implements OnModuleInit {
       { chatId, message: body.message.message },
       socket.data.user.id
     );
+
+    const userFCMToken = await this.usersService.getChatUserFCMToken(socket.data.user.id, chatId);
+
+    if (userFCMToken) {
+      const user = await this.usersService.findOne(socket.data.user.id);
+      user &&
+        (await this.notificationService.sendNotification(userFCMToken, {
+          title: user.name,
+          body: message.message,
+          link: `https://localhost:3000/home/chats/${chatId}`
+        }));
+    }
 
     socket.to(chatId).emit('receiveMessage', message);
     socket.emit('messageAck', { message, id: body.message.id });

@@ -12,7 +12,7 @@ export class UserChat {
 
   @ManyToOne(() => User, (user) => user.chats, { onDelete: 'NO ACTION', onUpdate: 'NO ACTION' })
   @JoinColumn([{ name: 'user_id', referencedColumnName: 'id' }])
-  users: User[];
+  user: User;
 
   @ManyToOne(() => Chat, (chat) => chat.users, {
     onDelete: 'NO ACTION',

@@ -22,7 +22,7 @@
     "entity:create": "npm run typeorm entity:create -n ./src/chats/chat-messages",
     "migration:run": "npm run typeorm migration:run -- -d ./src/config/typeorm.ts",
     "migration:run:docker": "npm run typeorm migration:run -- -d ./dist/src/config/typeorm.js",
-    "migration:generate": "npm run typeorm -- -d ./src/config/typeorm.ts migration:generate ./src/migrations/add-user-id-assistants-chat",
+    "migration:generate": "npm run typeorm -- -d ./src/config/typeorm.ts migration:generate ./src/migrations/add-fcm-token-to-user",
     "migration:create": "npm run typeorm -- migration:create ./src/migrations/add-threadId-to-chat",
     "migration:revert": "npm run typeorm -- -d ./src/config/typeorm.ts migration:revert"
   },
@@ -43,6 +43,7 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
+    "firebase-admin": "^13.4.0",
     "moment": "^2.30.1",
     "nestjs-zod": "^4.2.0",
     "nodemailer": "^6.9.16",

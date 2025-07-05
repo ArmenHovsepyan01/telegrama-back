@@ -14,6 +14,8 @@ import { hash } from 'bcrypt';
 import { MailService } from '../mail/mail.service';
 import { ChatsService } from '../chats/chats.service';
 import { UserChat } from './user_chats.entity';
+import { SaveFCMTokenDto } from './dto/saveFCMToken.dto';
+import { Not } from 'typeorm';
 
 @Injectable()
 export class UsersService {
@@ -152,6 +154,43 @@ export class UsersService {
         ])
         .setParameters({ userId })
         .getMany();
+    } catch (e) {
+      throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async saveFCMToken(userId: number, body: SaveFCMTokenDto) {
+    try {
+      console.log(userId, body);
+      const existingUser = await this.usersRepository.findOne({
+        where: {
+          id: userId
+        }
+      });
+
+      if (!existingUser) {
+        throw new BadRequestException(`User not found.`);
+      }
+
+      if (!existingUser?.fcmToken) {
+        await this.usersRepository.update(existingUser.id, body);
+      }
+    } catch (e) {
+      throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async getChatUserFCMToken(userId: number, chatId: string) {
+    try {
+      const userChat = await this.userChatsRepository.findOne({
+        where: {
+          chatId,
+          userId: Not(userId)
+        },
+        relations: ['user']
+      });
+
+      return userChat?.user?.fcmToken;
     } catch (e) {
       throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }

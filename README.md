@@ -29,6 +29,7 @@ npm install
 
 - `PORT`
 - `JWT_SECRET`
+- `SALT`
 - `DB_HOST`
 - `DB_PORT`
 - `DB_USERNAME`
@@ -36,6 +37,7 @@ npm install
 - `DB_NAME`
 - `APP_DOMAIN`
 - `MAIL_USERNAME`
+- `MAIL_PASSWORD`
 
 3. Run database migrations (if needed):
 
@@ -49,7 +51,7 @@ npm run migration:run
 npm run start:dev
 ```
 
-The server starts with global prefix `api`, and Swagger is available at `/api`.
+The server starts with global prefix `api`, and Swagger UI is served at `http://localhost:5000/api`.
 
 ## Useful Scripts
 
